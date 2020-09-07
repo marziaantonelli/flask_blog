@@ -1,33 +1,35 @@
 {% extends 'base.html' %}
 
-{% block title %} Home {% endblock %}
+{% block title %}Home{% endblock %}
 
 {% block content %}
-
-  <div class="container content-container">
+<div class="container content-container">
     <div class="row no-gutters">
-      <div class="col-md-9 order-md-2">
-        {% for post in posts %}
-        <div class="single-post-home">
-          <h5>
-            <a class="custom-link" href="{{ url_for('post_detail', post_id = post.id) }}">
-              {{ post.title }}</a>
-          </h5>
-          <p>{{ post.created_at.strftime('%d.%m.%Y') }}</p>
 
-          <p class="p-small-two text-muted">{% if post.description %}</p>
-          <p class="p-small-one text-muted-mb-0">{{ post.description }}</p>
-          {% endif %}
+        <div class="col-md-9 order-md-2">
+            {% for post in posts %}
+            <div class="single-post-home">
+                <h5>
+                    <a class="custom-link" href="{{ url_for('post_detail', post_slug=post.slug) }}">
+                        {{ post.title }}
+                    </a>
+                </h5>
+                <p class="p-small-two text-muted">{{ post.created_at.strftime('%d.%m.%Y') }}</p>
 
+                {% if post.description %}
+                <p class="p-small-one text-muted mb-0">
+                    {{ post.description }}
+                  <a class="read-more" href="{{ url_for('post_detail', post_slug=post.slug) }}">Leggi articolo</a>
+                </p>
+                {% endif %}
+            </div>
+            {% endfor %}
         </div>
-        {% endfor %}
-      </div>
 
-      <div class="col-m-3 order-md-1">
-        {% include 'about_me_snippet.html' %}
-      </div>
+        <div class="col-md-3 order-md-1">
+            {% include 'about_me_snippet.html' %}
+        </div>
 
     </div>
-  </div>
-
+</div>
 {% endblock %}

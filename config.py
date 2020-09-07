@@ -11,3 +11,4 @@ class Config:
     # serve per prevenire l'invio di segnali in fase di modifica di cui non abbiamo bisogno
     # mantenendo l'applicazione più veloce
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    UPLOAD_FOLDER = "static/img/posts"

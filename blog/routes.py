@@ -3,15 +3,16 @@ from flask_login import current_user, login_user, logout_user, login_required
 from blog import db, app
 from blog.forms import LoginForm, PostForm
 from blog.models import Post, User
+from blog.utils import save_picture, title_slugifier
 
 @app.route("/")
 def homepage():
     posts = Post.query.order_by(Post.created_at.desc()).all()
     return render_template("homepage.html", posts=posts)
 
-@app.route("/posts/<int:post_id>")
-def post_detail(post_id):
-    post_instance = Post.query.get_or_404(post_id)
+@app.route("/posts/<string:post_slug>")
+def post_detail(post_slug):
+    post_instance = Post.query.filter_by(slug=post_slug).first_or_404()
     return render_template("post_detail.html", post=post_instance)
 
 @app.route("/create-post", methods=["GET", "POST"])
@@ -19,11 +20,25 @@ def post_detail(post_id):
 def post_create():
     form = PostForm()
     if form.validate_on_submit():
-        new_post = Post(title=form.title.data, body=form.body.data,
+        slug = title_slugifier(form.title.data)
+        new_post = Post(title=form.title.data, body=form.body.data, slug=slug,
                         description=form.description.data, author=current_user)
+
+        # inserisco il nome dell'immagine del db e controllo se l'immagine non è compromessa
+        if form.image.data:
+            try:
+                image = save_picture(form.image.data)
+                new_post.image = image
+            except Exception:
+                db.session.add(new_post)
+                db.session.commit()
+                flash("Errore durante l'upload. Cambia immagine e riprova.")
+                return redirect(url_for('post_update', post_id=new_post.id))
+
+
         db.session.add(new_post)
         db.session.commit()
-        return redirect(url_for('post_detail', post_id=new_post.id))
+        return redirect(url_for('post_detail', post_slug=slug))
     return render_template("post_editor.html", form=form)
 
 @app.route("/posts/<int:post_id>/update", methods=["GET", "POST"])
@@ -37,13 +52,27 @@ def post_update(post_id):
         post_instance.title = form.title.data
         post_instance.description = form.description.data
         post_instance.body = form.body.data
+
+        # inserisco il nome dell'immagine del db e controllo se l'immagine non è compromessa
+        if form.image.data:
+            try:
+                image = save_picture(form.image.data)
+                post_instance.image = image
+            except Exception:
+                db.session.commit()
+                flash("Errore durante l'upload. Cambia immagine e riprova.")
+                return redirect(url_for('post_update', post_id=post_instance.id))
+
         db.session.commit()
-        return redirect(url_for('post_detail', post_id=post_instance.id))
+        return redirect(url_for('post_detail', post_slug=post_instance.slug))
     elif request.method == "GET":
         form.title.data = post_instance.title
         form.description.data = post_instance.description
         form.body.data = post_instance.body
-    return render_template("post_editor.html", form=form)
+
+    post_image = post_instance.image or None
+
+    return render_template("post_editor.html", form=form, post_image=post_image)
 
 @app.route("/posts/<int:post_id>/delete", methods=["POST"])
 @login_required
